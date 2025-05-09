@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clown Points</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .auth-buttons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .auth-buttons button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .auth-buttons button:hover {
+            background-color: #45a049;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #leaderboard {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .user-row {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-row:last-child {
+            border-bottom: none;
+        }
+
+        .rank {
+            width: 40px;
+            font-weight: bold;
+        }
+
+        .name {
+            flex: 1;
+            margin: 0 20px;
+        }
+
+        .info-button {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .info-button:hover {
+            background-color: #45a049;
+        }
+
+        .points {
+            width: 100px;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .rules-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        .rules-button:hover {
+            background-color: #45a049;
+        }
+
+        .report-button {
+            position: fixed;
+            top: 20px;
+            right: 150px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            z-index: 1000;
+        }
+
+        .report-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <button class="rules-button" onclick="window.location.href='rules.html'">R.A.C.</button>
+    <div class="auth-buttons">
+        <a href="segnalazione.html" class="report-button">Segnala</a>
+        <button id="loginBtn" onclick="window.location.href='login.html'">Login</button>
+        <button id="logoutBtn" class="hidden" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <h1>Classifica Clown Points</h1>
+        <div id="leaderboard"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        // Verifica se l'utente è loggato
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/check-session');
+                const data = await response.json();
+                if (data.loggedIn) {
+                    currentUser = data.user;
+                    document.getElementById('loginBtn').classList.add('hidden');
+                    document.getElementById('logoutBtn').classList.remove('hidden');
+                } else {
+                    document.getElementById('loginBtn').classList.remove('hidden');
+                    document.getElementById('logoutBtn').classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Errore nel controllo della sessione:', error);
+            }
+        }
+
+        // Funzione di logout
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    currentUser = null;
+                    checkLoginStatus();
+                    loadLeaderboard();
+                }
+            } catch (error) {
+                console.error('Errore durante il logout:', error);
+            }
+        }
+
+        // Carica la classifica
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('/leaderboard');
+                const users = await response.json();
+                const leaderboard = document.getElementById('leaderboard');
+                leaderboard.innerHTML = '';
+
+                users.forEach((user, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'user-row';
+                    
+                    let html = `
+                        <span class="rank">${index + 1}</span>
+                        <span class="name">${user.name}</span>
+                        <button onclick="window.location.href='details.html?user=${encodeURIComponent(user.name)}'" class="info-button">Info</button>
+                        <span class="points">${user.point} punti</span>
+                    `;
+
+                    // Solo l'admin può modificare i punteggi
+                    if (currentUser && currentUser.name === 'Simone') {
+                        html += `
+                            <button onclick="updatePoints('${user.name}', ${user.point + 1})">+</button>
+                            <button onclick="updatePoints('${user.name}', ${user.point - 1})">-</button>
+                            <button onclick="deleteUser('${user.name}')">Elimina</button>
+                        `;
+                    }
+
+                    row.innerHTML = html;
+                    leaderboard.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Errore nel caricamento della classifica:', error);
+            }
+        }
+
+        // Aggiorna punti (solo per admin)
+        async function updatePoints(name, newPoints) {
+            if (currentUser && currentUser.name === 'Simone') {
+                try {
+                    const response = await fetch('/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name, point: newPoints })
+                    });
+                    if (response.ok) {
+                        loadLeaderboard();
+                    }
+                } catch (error) {
+                    console.error('Errore nell\'aggiornamento dei punti:', error);
+                }
+            }
+        }
+
+        // Elimina utente (solo per admin)
+        async function deleteUser(name) {
+            if (currentUser && currentUser.name === 'Simone') {
+                if (confirm('Sei sicuro di voler eliminare questo utente?')) {
+                    try {
+                        const response = await fetch('/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ name })
+                        });
+                        if (response.ok) {
+                            loadLeaderboard();
+                        }
+                    } catch (error) {
+                        console.error('Errore nell\'eliminazione dell\'utente:', error);
+                    }
+                }
+            }
+        }
+
+        // Inizializzazione
+        checkLoginStatus();
+        loadLeaderboard();
+    </script>
+</body>
+</html>

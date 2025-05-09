@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettagli Segnalazioni - Clown Points</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .segnalazione {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+
+        .segnalazione:last-child {
+            border-bottom: none;
+        }
+
+        .data {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .articolo {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .prove {
+            margin-top: 10px;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background-color: #45a049;
+        }
+
+        .no-segnalazioni {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">Indietro</a>
+    <div class="container">
+        <h1>Segnalazioni di <span id="userName"></span></h1>
+        <div id="segnalazioni"></div>
+    </div>
+
+    <script>
+        // Ottieni il nome utente dall'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const user = urlParams.get('user');
+        
+        document.getElementById('userName').textContent = user;
+
+        // Carica le segnalazioni
+        async function loadSegnalazioni() {
+            try {
+                const response = await fetch(`/segnalazioni/${encodeURIComponent(user)}`);
+                const segnalazioni = await response.json();
+                const container = document.getElementById('segnalazioni');
+
+                if (segnalazioni.length === 0) {
+                    container.innerHTML = '<div class="no-segnalazioni">Nessuna segnalazione trovata</div>';
+                    return;
+                }
+
+                container.innerHTML = segnalazioni.map(s => `
+                    <div class="segnalazione">
+                        <div class="data">${new Date(s.data_segnalazione).toLocaleString()}</div>
+                        <div class="articolo">Articolo violato: ${s.articolo_violato}</div>
+                        ${s.prove_testuali ? `<div class="prove">Prove testuali: ${s.prove_testuali}</div>` : ''}
+                        ${s.prove_fotografiche ? `<div class="prove"><img src="/uploads/${s.prove_fotografiche}" alt="Prova fotografica" style="max-width: 100%;"></div>` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Errore nel caricamento delle segnalazioni:', error);
+            }
+        }
+
+        loadSegnalazioni();
+    </script>
+</body>
+</html>
