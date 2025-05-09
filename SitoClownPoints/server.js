@@ -232,7 +232,6 @@ app.get('/segnalazioni/:user', (req, res) => {
 });
 
 const nodemailer = require("nodemailer");
-const mysql = require("mysql2"); // Questa è una duplicazione
 const cron = require("node-cron");
 
 
